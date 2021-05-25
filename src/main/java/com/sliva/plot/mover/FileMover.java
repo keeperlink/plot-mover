@@ -1,10 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * GNU GENERAL PUBLIC LICENSE
  */
 package com.sliva.plot.mover;
 
+import static com.sliva.plot.mover.IOUtils.GB;
+import static com.sliva.plot.mover.IOUtils.KB;
 import static com.sliva.plot.mover.LoggerUtil.log;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class FileMover {
 
     private static final long PRINT_PROGRESS_STEP_PERCENT = 5;
+    private static final int SELECTIVE_CHECK_SECTORS = 200;
+    private static final int SELECTIVE_CHECK_SECTOR_SIZE = 4 * KB;
 
     private final File sourceFile;
     private final File destinationDir;
@@ -48,20 +50,18 @@ public class FileMover {
         if (!sourceFile.exists()) {
             throw new IOException("Unexpected: Source file not found: " + sourceFile);
         }
+        long destinationTotalSpace = destinationDir.getTotalSpace();
+        long destinationAvailableSpace = destinationDir.getUsableSpace();
+        if (destinationTotalSpace > 0 && destinationAvailableSpace < sourceFile.length()) {
+            throw new IOException("Destination drive is out of space: available=" + destinationAvailableSpace / GB + " GB, required=" + sourceFile.length() / GB + " GB");
+        }
         String fileName = sourceFile.getName();
         String tempFileName = fileName + ".moving";
         File destinationTempFile = new File(destinationDir, tempFileName);
-        log("Copying file (size: " + (sourceFile.length() / 1024 / 1024 / 1024) + " GB) " + sourceFile + " ==> " + destinationTempFile);
+        log("Copying file (size: " + (sourceFile.length() / GB) + " GB) " + sourceFile + " ==> " + destinationTempFile);
         copyFile(sourceFile, destinationTempFile);
-        if (!destinationTempFile.exists()) {
-            throw new IOException("Unexpected: Destination temp file not found: " + destinationTempFile);
-        }
-        if (destinationTempFile.length() != sourceFile.length()) {
-            throw new IOException("Unexpected: Destination temp file size mismatch: " + destinationTempFile.length() + " <> " + sourceFile.length());
-        }
-        if (!selectiveCompareFiles(sourceFile, destinationTempFile)) {
-            throw new IOException("Destination file validation failed");
-        }
+        log("Validating file " + destinationTempFile);
+        validateFile(sourceFile, destinationTempFile);
         File destinationFile = new File(destinationDir, fileName);
         log("Renaming file " + destinationTempFile + " ==> " + destinationFile);
         destinationTempFile.renameTo(destinationFile);
@@ -117,7 +117,19 @@ public class FileMover {
         }
     }
 
-    private boolean selectiveCompareFiles(File file1, File file2) throws IOException {
+    private static void validateFile(File source, File destination) throws IOException {
+        if (!destination.exists()) {
+            throw new IOException("Unexpected: Destination temp file not found: " + destination);
+        }
+        if (destination.length() != source.length()) {
+            throw new IOException("Unexpected: Destination temp file size mismatch: " + destination.length() + " <> " + source.length());
+        }
+        if (!selectiveCompareFiles(source, destination, SELECTIVE_CHECK_SECTORS, SELECTIVE_CHECK_SECTOR_SIZE)) {
+            throw new IOException("Destination file validation failed");
+        }
+    }
+
+    private static boolean selectiveCompareFiles(File file1, File file2, int checkSectors, int sectorSize) throws IOException {
         if (!file1.isFile() || !file2.isFile()) {
             log("Unexpected ERROR: Source or restination file doesn't exist");
             return false;
@@ -127,9 +139,8 @@ public class FileMover {
             return false;
         }
         long fileSize = file1.length();
-        long numChecks = 100;
-        long step = fileSize / numChecks;
-        byte[] buf1 = new byte[1024];
+        long step = fileSize / checkSectors;
+        byte[] buf1 = new byte[sectorSize];
         byte[] buf2 = new byte[buf1.length];
         try (RandomAccessFile raf1 = new RandomAccessFile(file1, "r"); RandomAccessFile raf2 = new RandomAccessFile(file2, "r")) {
             for (long pos = 0; pos < fileSize + step; pos += step) {

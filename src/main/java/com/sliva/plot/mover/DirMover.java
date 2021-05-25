@@ -1,11 +1,12 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * GNU GENERAL PUBLIC LICENSE
  */
 package com.sliva.plot.mover;
 
+import static com.sliva.plot.mover.IOUtils.GB;
+import static com.sliva.plot.mover.IOUtils.MB;
 import static com.sliva.plot.mover.IOUtils.isPresentFileWithExt;
+import static com.sliva.plot.mover.LoggerUtil.format;
 import static com.sliva.plot.mover.LoggerUtil.log;
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,7 @@ import java.util.stream.Stream;
 @SuppressWarnings("SleepWhileInLoop")
 public class DirMover {
 
-    private static final int COPY_BUFFER_SIZE = 10 * 1024 * 1024;
+    private static final int COPY_BUFFER_SIZE = 10 * MB;
     private final File sourceDir;
     private final File destinationDir;
     private final int copyThrottle;
@@ -70,6 +71,9 @@ public class DirMover {
                 }
             }
             log("Source file: " + file.getAbsolutePath());
+            long destinationTotalSpace = destinationDir.getTotalSpace();
+            long destinationAvailableSpace = destinationDir.getUsableSpace();
+            log("Destination drive available space: " + format(destinationAvailableSpace / GB) + " out of " + format(destinationTotalSpace / GB) + " GB");
             new FileMover(file, destinationDir, copyThrottle, copyBuffer, paused, interrupted).run();
         } catch (InterruptedException | IOException ex) {
             throw new RuntimeException(ex.getMessage(), ex);

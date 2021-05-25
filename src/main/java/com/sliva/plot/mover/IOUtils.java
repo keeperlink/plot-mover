@@ -1,7 +1,5 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * GNU GENERAL PUBLIC LICENSE
  */
 package com.sliva.plot.mover;
 
@@ -13,6 +11,11 @@ import java.util.stream.Stream;
  * @author Sliva Co
  */
 public final class IOUtils {
+
+    public static final int KB = 1024;
+    public static final int MB = KB * KB;
+    public static final long GB = MB * KB;
+    public static final long TB = GB * KB;
 
     /**
      * Check if there are files with extension fileExtension are present in the

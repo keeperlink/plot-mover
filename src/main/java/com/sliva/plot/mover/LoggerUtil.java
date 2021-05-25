@@ -1,10 +1,9 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * GNU GENERAL PUBLIC LICENSE
  */
 package com.sliva.plot.mover;
 
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -18,5 +17,9 @@ public final class LoggerUtil {
 
     public static void log(String message) {
         System.out.println(new SimpleDateFormat(DATE_FORMAT).format(new Date()) + " " + message);
+    }
+
+    public static String format(long value) {
+        return NumberFormat.getIntegerInstance().format(value);
     }
 }
