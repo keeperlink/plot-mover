@@ -92,6 +92,6 @@ public class DirMover {
     }
 
     private boolean isTmpFilePresent() {
-        return isPresentFileWithExt(sourceDir, "tmp") || isPresentFileWithExt(destinationDir, "tmp");
+        return isPresentFileWithExt(sourceDir, "tmp") || isPresentFileWithExt(sourceDir, "moving") || isPresentFileWithExt(destinationDir, "tmp");
     }
 }
